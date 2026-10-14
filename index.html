@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão de Desligamentos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="locked">
+
+<!-- ============ TELA DE LOGIN ============ -->
+<div class="login" id="loginScreen">
+  <section class="login-brand">
+    <div class="login-logo"><span class="login-mark">D</span><span>Desligamentos</span></div>
+    <div>
+      <h1>Cada saída com checklist, devolução e acesso sob controle.</h1>
+      <p>Acompanhe etapas, equipamentos e revogação de acessos de quem está deixando a empresa, com histórico de quem fez o quê.</p>
+    </div>
+    <ul class="login-pontos">
+      <li><b>RH</b> registra o desligamento e acompanha as etapas</li>
+      <li><b>TI</b> revoga os acessos e deixa tudo registrado</li>
+      <li><b>Admin</b> enxerga e administra tudo</li>
+    </ul>
+  </section>
+
+  <section class="login-card">
+    <form id="formLogin" autocomplete="on" novalidate>
+      <h2>Entrar</h2>
+      <p class="login-sub">Use seu usuário e senha de acesso.</p>
+      <div class="login-campos">
+        <label class="field">Usuário
+          <input name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+        </label>
+        <label class="field">Senha
+          <span class="senha-wrap">
+            <input name="senha" type="password" autocomplete="current-password" required>
+            <button type="button" class="ver-senha" id="verSenha" aria-pressed="false" aria-label="Mostrar senha">Mostrar</button>
+          </span>
+        </label>
+      </div>
+      <label class="manter"><input type="checkbox" name="manter"> Manter conectado neste computador</label>
+      <p class="erro" id="erroLogin" role="alert" hidden></p>
+      <button class="btn login-btn" type="submit" id="btnEntrar">Entrar</button>
+
+      <details class="demo" id="demoBox" hidden>
+        <summary>Contas de demonstração</summary>
+        <div id="demoLista"></div>
+        <p class="demo-aviso">Troque por contas reais e desligue este aviso (<code>MOSTRAR_DEMO</code> em <code>js/auth.js</code>) antes de usar de verdade.</p>
+      </details>
+    </form>
+  </section>
+</div>
+
+
+<aside class="rail">
+  <div class="brand">
+    <div class="mark">D</div>
+    <h1>Desligamentos<small>Controle de saídas e devoluções</small></h1>
+  </div>
+  <nav class="nav" id="nav">
+    <button data-view="painel" aria-current="true">Painel</button>
+    <button data-view="colaboradores">Colaboradores <span class="count" id="cntCol"></span></button>
+    <button data-view="ti">Área do TI <span class="count" id="cntTi"></span></button>
+    <button data-view="novo">Novo desligamento</button>
+  </nav>
+  <div class="rail-foot">
+    <div class="user-box"><b id="userNome"></b><span id="userPerfil"></span></div>
+    <button id="btnTema">Alternar tema</button> ·
+    <button id="btnLimpar">Apagar dados</button> ·
+    <button id="btnSair">Sair</button>
+    <p class="nota" style="margin:8px 0 0">Os dados ficam salvos neste navegador.</p>
+  </div>
+</aside>
+
+<main>
+  <!-- ============ PAINEL ============ -->
+  <section class="view is-active" id="view-painel">
+    <div class="page-head">
+      <div>
+        <h2>Painel</h2>
+        <p>Saídas ordenadas pela data do último dia de trabalho. Quanto menos dias restam, mais urgente é fechar as pendências.</p>
+      </div>
+      <button class="btn" data-goto="novo">Registrar desligamento</button>
+    </div>
+    <div class="resumo" id="resumo"></div>
+    <div class="card">
+      <div class="card-head"><h3>Próximas saídas</h3><span class="hint">Clique para abrir o acompanhamento</span></div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Motivos de saída registrados nas entrevistas</h3><span class="hint">Cruzamento dos desligamentos com entrevista preenchida</span></div>
+      <div class="card-body" id="motivos"></div>
+    </div>
+  </section>
+
+  <!-- ============ COLABORADORES ============ -->
+  <section class="view" id="view-colaboradores">
+    <div class="page-head">
+      <div>
+        <h2>Colaboradores em desligamento</h2>
+        <p>Cada colaborador tem seu checklist de etapas, devolução de equipamentos e revogação de acessos.</p>
+      </div>
+      <button class="btn" data-goto="novo">Registrar desligamento</button>
+    </div>
+    <div class="filtros">
+      <input type="search" id="busca" placeholder="Buscar por nome, matrícula ou setor">
+      <select id="filtroStatus">
+        <option value="todos">Todos os status</option>
+        <option value="pendente">Com pendências</option>
+        <option value="concluido">Concluídos</option>
+      </select>
+      <select id="filtroEmpresa"><option value="todas">Todas as empresas</option></select>
+    </div>
+    <div class="card"><div class="timeline" id="listaCol"></div></div>
+  </section>
+
+  <!-- ============ DETALHE ============ -->
+  <section class="view" id="view-detalhe"></section>
+
+  <!-- ============ TI ============ -->
+  <section class="view" id="view-ti">
+    <div class="page-head">
+      <div>
+        <h2>Área do TI</h2>
+        <p>Acessos que ainda estão ativos em contas de colaboradores desligados. Revogue e o sistema registra quem fez e quando.</p>
+      </div>
+    </div>
+    <div class="filtros">
+      <input type="search" id="buscaTI" placeholder="Buscar por nome ou matrícula">
+      <label class="field" style="max-width:220px;margin:0">Responsável pela revogação
+        <input id="respTI" placeholder="Seu nome" autocomplete="off">
+      </label>
+    </div>
+    <div class="page-head" style="margin-bottom:10px">
+      <h3 style="font-size:14.5px;color:var(--ink-2)">Acessos a revogar</h3>
+      <span class="hint" id="tiResumo" style="font-size:12.5px;color:var(--ink-3)"></span>
+    </div>
+    <div id="listaTI"></div>
+    <div class="card" style="margin-top:22px">
+      <div class="card-head"><h3>Revogações concluídas</h3></div>
+      <div id="listaTIFeito"></div>
+    </div>
+  </section>
+
+  <!-- ============ NOVO ============ -->
+  <section class="view" id="view-novo">
+    <div class="page-head">
+      <div>
+        <h2>Registrar desligamento</h2>
+        <p>Ao salvar, o sistema já cria o checklist de etapas, a lista de equipamentos e os acessos a revogar.</p>
+      </div>
+    </div>
+    <div class="card"><div class="card-body">
+      <form id="formNovo" autocomplete="off">
+        <div class="grid">
+          <label class="field">Nome completo<input name="nome" required></label>
+          <label class="field">Matrícula<input name="matricula" required placeholder="Digite e saia do campo"></label>
+          <label class="field">Cargo<input name="cargo"></label>
+          <label class="field">Setor<input name="setor"></label>
+          <label class="field">Empresa<input name="empresa" list="empresas"></label>
+          <label class="field">Gestor imediato<input name="gestor"></label>
+          <label class="field">Admissão<input type="date" name="admissao"></label>
+          <label class="field">Último dia de trabalho<input type="date" name="ultimoDia" required></label>
+          <label class="field">Tipo de desligamento
+            <select name="tipo">
+              <option>Dispensa sem justa causa</option>
+              <option>Pedido de demissão</option>
+              <option>Dispensa por justa causa</option>
+              <option>Acordo (art. 484-A)</option>
+              <option>Fim de contrato de experiência</option>
+              <option>Aposentadoria</option>
+            </select>
+          </label>
+          <label class="field">Responsável no RH<input name="responsavel"></label>
+          <label class="field">Salário mensal (R$)<input name="salario" type="number" step="0.01" min="0" placeholder="Opcional — usado no cálculo"></label>
+          <label class="field">Aviso prévio
+            <select name="aviso">
+              <option value="indenizado">Indenizado</option>
+              <option value="trabalhado">Trabalhado</option>
+              <option value="dispensado">Dispensado</option>
+            </select>
+          </label>
+          <label class="field wide">Equipamentos a devolver (separe por vírgula)
+            <input name="equip" value="Notebook, Crachá, Celular corporativo, Chip, Chaves, Uniforme">
+          </label>
+          <label class="field wide">Acessos a revogar (separe por vírgula)
+            <input name="acessos" value="E-mail corporativo, Rede/AD, VPN, ERP, Teams, Sistema de ponto">
+          </label>
+          <label class="field wide">Observações<textarea name="obs" placeholder="Contexto que o RH precisa lembrar"></textarea></label>
+        </div>
+        <datalist id="empresas"></datalist>
+        <p class="erro" id="erroNovo" hidden></p>
+        <div class="form-actions">
+          <button class="btn" type="submit">Salvar desligamento</button>
+          <button class="btn ghost" type="button" data-goto="colaboradores">Cancelar</button>
+        </div>
+      </form>
+    </div></div>
+  </section>
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/funcionarios.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
